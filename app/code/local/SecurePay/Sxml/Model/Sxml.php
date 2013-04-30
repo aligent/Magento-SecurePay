@@ -43,7 +43,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
     protected $_canUseForMultishipping  = true;
     protected $_canSaveCc               = false;
 	
-    protected $_formBlockType = 'SecurePay_Sxml_block_form_cc';
+    protected $_formBlockType = 'Sxml/form_cc';
 	
     const STATUS_APPROVED = 'Approved';
 

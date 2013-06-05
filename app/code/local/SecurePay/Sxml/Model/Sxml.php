@@ -410,6 +410,8 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 		if($sxml->processRefund($amount,$transaction_id,$bankRespID))
 		{
 			$transaction_id = $sxml->getResult('transaction_id');
+            $payment->setCcTransId(''.$transaction_id);
+            $payment->setTransactionId(''.$transaction_id);
 			
 			if($this->getDebug())
 			{

@@ -1250,6 +1250,7 @@ class securexml_transaction
 			{
 				$responseArray['antiFraudText'] = trim($xmlres['SecurePayMessage'][$requestType][$list][$item]['antiFraudResponseText']);
 				$responseArray['antiFraudCode'] = trim($xmlres['SecurePayMessage'][$requestType][$list][$item]['antiFraudResponseCode']);
+                $responseArray['antiFraudScore'] = trim($xmlres['SecurePayMessage'][$requestType][$list][$item]['FraudGuard']['score']);
 			}
 			
 			$responseArray['amount'] = trim($xmlres['SecurePayMessage'][$requestType][$list][$item]['amount']);

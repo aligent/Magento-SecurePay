@@ -161,9 +161,10 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 		}
 		
 		$approved = true;
-                $iStoreId = $payment->getOrder()->getStoreId();
+		$iStoreId = $payment->getOrder()->getStoreId();
 		$transaction_id = $payment->getOrder()->getIncrementId();
-		
+
+        $bFraudguardPassed = true;
 		if($this->isFraudGuard($iStoreId))
 		{
 			//Create the fraudguard transaction object
@@ -182,10 +183,14 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                 $iFraudguardResponse = $sxml->getResult('antiFraudText');
                 $iFraudguardScore = $sxml->getResult('antiFraudScore');
                 $bFraudguardPassed = ($iFraudguardScore < 10);
-            }
-            if($this->getDebug())
-            {
-                $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
+
+                if($this->getDebug()) {
+                    $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
+                }
+            } else {
+                if($this->getDebug()) {
+                    $logger->info("FraudGuard request failed.");
+                }
             }
 		}
 		
@@ -205,10 +210,10 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                 $payment->setIsFraudDetected(true);
             }
 			
-			if($this->getDebug())
-			{
-				$logger->info("Preauth Approved. #: " . $payment->getCcTransId());
-			}
+            if($this->getDebug())
+            {
+                $logger->info("Preauth Approved. #: " . $payment->getCcTransId());
+            }
 		}
 		else
 		{
@@ -249,7 +254,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 			$logger = new Zend_Log($writer);
 		}
 		
-                $iStoreId = $payment->getOrder()->getStoreId();
+		$iStoreId = $payment->getOrder()->getStoreId();
 		$preauth = $payment->getCcTransId();
 		
 		$txnType = "Advice";
@@ -279,14 +284,14 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 
         if($txnType == "Advice")
 		{
-			//Issue an advice transaction (captures a pre-existing auth)
+			// Issue an advice transaction (captures a pre-existing auth)
 			$approved = $sxml->processAdvice($amount, $transaction_id, $preauth);
 		}
 		else
 		{
 			if($this->isFraudGuard($iStoreId))
 			{
-				//Issue a fraudguard transaction
+				// Issue a fraudguard transaction
 				$sxml = new securexml_transaction ($this->getMode(),$this->getUsername($iStoreId),$this->getPassword($iStoreId));
 				$shipping_address = $this->getQuote()->getShippingAddress();
 				$billing_address = $this->getQuote()->getBillingAddress();
@@ -294,36 +299,48 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                 $vRemoteIp = Mage::helper('core/http')->getRemoteAddr();
                 $sxml->initFraud($vRemoteIp, $billing_address->getFirstname(), $billing_address->getLastname(), $billing_address->getPostcode(), $billing_address->getCity(), $billing_address->getCountry(), $shipping_address->getCountry(), $billing_address->getEmail());
 
-                // request an auth and fraudguard check
+                // request a fraudguard check
                 $bRequestSuccessful = $sxml->processCreditFraudCheck($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
 
-                if($bRequestSuccessful){
-                    $iFraudguardResponse = $sxml->getResult('antiFraudText');
-                    $iFraudguardScore = $sxml->getResult('antiFraudScore');
-                    $bFraudguardPassed = ($iFraudguardScore < 10);
-                    if($this->getDebug())
-                    {
-                        $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
-                    }
-                    if($sxml->getResult('preauthID'))
-                    {
-                        //Fraudguard passed, so now capture the preauth we just got
-                        $approved = $sxml->processAdvice($amount, $transaction_id, $sxml->getResult('preauth_id'));
+                $iFraudguardResponse = $sxml->getResult('antiFraudText');
+                $iFraudguardScore = $sxml->getResult('antiFraudScore');
+                $bFraudguardPassed = ($iFraudguardScore < 10);
+
+                if($this->getDebug()) {
+                    $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
+                }
+
+                if ($bFraudguardPassed) {
+                    //Fraudguard passed, so now capture the funds
+                    $sxml = new securexml_transaction($this->getMode(NO_ANTIFRAUD), $this->getUsername($iStoreId), $this->getPassword($iStoreId));
+                    $approved = $sxml->processCredit($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
+
+                } else {
+                    // Only request authorization for transactions that fail Fraudguard checks
+                    $sxml = new securexml_transaction ($this->getMode(NO_ANTIFRAUD),$this->getUsername($iStoreId),$this->getPassword($iStoreId));
+                    $approved = $sxml->processPreauth($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
+
+                    if ($approved) {
+                        $preauth_id = (string) $sxml->getResult('preauth_id');
+                        $payment->setCcTransId($preauth_id);
+                        $payment->setTransactionId($preauth_id);
+
+                        // We only get here if fraudguard thinks this transaction is fraudulent
+                        $payment->setIsTransactionPending(true);
+                        $payment->setIsFraudDetected(true);
+                        return $this;
                     }
                 }
-			}
-			else
-			{
+			} else {
 				//Issue a standard transaction
                 $approved = $sxml->processCredit($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
 			}
 		}
 		
-		if($approved && $bFraudguardPassed)
-		{
-			$transaction_id = $sxml->getResult('transaction_id');
-			$payment->setCcTransId(''.$transaction_id);
-			$payment->setTransactionId(''.$transaction_id);
+		if($approved) {
+			$transaction_id = (string) $sxml->getResult('transaction_id');
+			$payment->setCcTransId($transaction_id);
+			$payment->setTransactionId($transaction_id);
 			if($this->getDebug())
 			{
 				$logger->info("Advice/Standard Approved. Currency = " . Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode() . " Response ID: " . $payment->getCcTransId());
@@ -469,7 +486,12 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 
     public function acceptPayment(Mage_Payment_Model_Info $payment) {
         parent::acceptPayment($payment);
-        //perform gateway actions to remove Fraud flags. Capture should not occur here
+
+        // Perform gateway actions to remove Fraud flags, in this case that means capturing
+        // against the existing authorization.
+        $fAmountToCapture = $payment->getAmountAuthorized() - $payment->getAmountPaid();
+        $this->capture($payment, $fAmountToCapture);
+
         return true;
     }
 

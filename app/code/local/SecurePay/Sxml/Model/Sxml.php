@@ -46,7 +46,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
     protected $_canReviewPayment        = true;
 	
     protected $_formBlockType = 'Sxml/form_cc';
-	
+
     const STATUS_APPROVED = 'Approved';
 
 	const PAYMENT_ACTION_AUTH_CAPTURE = 'authorize_capture';
@@ -180,12 +180,12 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 			//Issue check
 			$bRequestSuccessful = $sxml->processCreditFraudCheck($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
 
-            $iFraudguardResponse = $sxml->getResult('antiFraudText');
+            $vFraudguardResponse = $sxml->getResult('antiFraudText');
             $iFraudguardScore = $sxml->getResult('antiFraudScore');
             $bFraudguardPassed = ($iFraudguardScore < 10);
 
             if($this->getDebug()) {
-                $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
+                $logger->info("FraudGuard result: " . $vFraudguardResponse.' ('.$iFraudguardScore.')');
             }
 		}
 		
@@ -203,6 +203,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
             if($bFraudguardPassed == false){
                 $payment->setIsTransactionPending(true);
                 $payment->setIsFraudDetected(true);
+                $payment->setAdditionalInformation('fraud_markers', $vFraudguardResponse.' ('.$iFraudguardScore.')');
             }
 			
             if($this->getDebug())
@@ -297,12 +298,12 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                 // request a fraudguard check
                 $bRequestSuccessful = $sxml->processCreditFraudCheck($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
 
-                $iFraudguardResponse = $sxml->getResult('antiFraudText');
+                $vFraudguardResponse = $sxml->getResult('antiFraudText');
                 $iFraudguardScore = $sxml->getResult('antiFraudScore');
                 $bFraudguardPassed = ($iFraudguardScore < 10);
 
                 if($this->getDebug()) {
-                    $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
+                    $logger->info("FraudGuard result: " . $vFraudguardResponse.' ('.$iFraudguardScore.')');
                 }
 
                 if ($bFraudguardPassed) {
@@ -323,6 +324,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                         // We only get here if fraudguard thinks this transaction is fraudulent
                         $payment->setIsTransactionPending(true);
                         $payment->setIsFraudDetected(true);
+                        $payment->setAdditionalInformation('fraud_markers', $vFraudguardResponse.' ('.$iFraudguardScore.')');
                         return $this;
                     }
                 }

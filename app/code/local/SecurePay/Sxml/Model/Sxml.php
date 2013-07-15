@@ -179,18 +179,13 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 			
 			//Issue check
 			$bRequestSuccessful = $sxml->processCreditFraudCheck($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
-            if($bRequestSuccessful){
-                $iFraudguardResponse = $sxml->getResult('antiFraudText');
-                $iFraudguardScore = $sxml->getResult('antiFraudScore');
-                $bFraudguardPassed = ($iFraudguardScore < 10);
 
-                if($this->getDebug()) {
-                    $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
-                }
-            } else {
-                if($this->getDebug()) {
-                    $logger->info("FraudGuard request failed.");
-                }
+            $iFraudguardResponse = $sxml->getResult('antiFraudText');
+            $iFraudguardScore = $sxml->getResult('antiFraudScore');
+            $bFraudguardPassed = ($iFraudguardScore < 10);
+
+            if($this->getDebug()) {
+                $logger->info("FraudGuard result: " . $iFraudguardResponse.' ('.$iFraudguardScore.')');
             }
 		}
 		
@@ -199,7 +194,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
         //Issue the preauth
         $approved = $sxml->processPreauth($amount, $transaction_id, $payment->getCcNumber(), $payment->getCcExpMonth(), $payment->getCcExpYear(), $payment->getCcCid(), Mage::app()->getStore()->getBaseCurrency()->getCurrencyCode());
 
-		if($approved && $sxml->getResult('preauthID'))
+		if($approved && $sxml->getResult('preauth_id'))
 		{
 			$preauth_id = $sxml->getResult('preauth_id');
 			$payment->setCcTransId(''.$preauth_id);
@@ -487,11 +482,13 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
     public function acceptPayment(Mage_Payment_Model_Info $payment) {
         parent::acceptPayment($payment);
 
-        // Perform gateway actions to remove Fraud flags, in this case that means capturing
-        // against the existing authorization.
-        $fAmountToCapture = $payment->getAmountAuthorized() - $payment->getAmountPaid();
-        $this->capture($payment, $fAmountToCapture);
-
+        $iStoreId = $payment->getOrder()->getStoreId();
+        if (Mage::getStoreConfig('payment/Sxml/payment_action', $iStoreId) == self::PAYMENT_ACTION_AUTH_CAPTURE) {
+            // Perform gateway actions to remove Fraud flags, in this case that means capturing
+            // against the existing authorization if we're in "Auth and Capture" mode.
+            $fAmountToCapture = $payment->getAmountAuthorized() - $payment->getAmountPaid();
+            $this->capture($payment, $fAmountToCapture);
+        }
         return true;
     }
 

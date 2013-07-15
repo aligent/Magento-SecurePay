@@ -78,7 +78,8 @@
 				<allowspecific>0</allowspecific>
 				<debug>0</debug>
 				<test>1</test>
-				<antifraud>0</antifraud>
+                <antifraud>0</antifraud>
+                <antifraud_threshold>100</antifraud_threshold>
 				<usecvv>0</usecvv>
 				<cctypes>AE,VI,MC</cctypes>
 				<payment_action>authorize</payment_action>

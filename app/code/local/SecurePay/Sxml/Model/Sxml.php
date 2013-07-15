@@ -61,7 +61,12 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 	{
 		return Mage::getStoreConfig('payment/Sxml/antifraud', $iStoreId);
 	}
-	
+
+    public function getFraudThreshold($iStoreId = 0) {
+        $iFraudThreshold  = (int) Mage::getStoreConfig('payment/Sxml/antifraud_threshold', $iStoreId);
+        return $iFraudThreshold;
+    }
+
 	public function getMode($forceNormal = 0, $iStoreId = 0)
 	{
 		$fraud = $forceNormal ? 0 : $this->isFraudGuard();
@@ -182,7 +187,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 
             $vFraudguardResponse = $sxml->getResult('antiFraudText');
             $iFraudguardScore = $sxml->getResult('antiFraudScore');
-            $bFraudguardPassed = ($iFraudguardScore < 10);
+            $bFraudguardPassed = ($iFraudguardScore < $this->getFraudThreshold($iStoreId));
 
             if($this->getDebug()) {
                 $logger->info("FraudGuard result: " . $vFraudguardResponse.' ('.$iFraudguardScore.')');
@@ -300,7 +305,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 
                 $vFraudguardResponse = $sxml->getResult('antiFraudText');
                 $iFraudguardScore = $sxml->getResult('antiFraudScore');
-                $bFraudguardPassed = ($iFraudguardScore < 10);
+                $bFraudguardPassed = ($iFraudguardScore < $this->getFraudThreshold($iStoreId));
 
                 if($this->getDebug()) {
                     $logger->info("FraudGuard result: " . $vFraudguardResponse.' ('.$iFraudguardScore.')');

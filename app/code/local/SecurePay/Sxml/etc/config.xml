@@ -3,7 +3,7 @@
 <config>
 	<modules>
 		<SecurePay_Sxml>
-			<version>1.0.8.5</version>
+			<version>1.0.8.6</version>
 			<depends>
 				<Mage_payment />
 			</depends>
@@ -15,6 +15,17 @@
                 <class>SecurePay_Sxml_Model</class>
             </Sxml>
         </models>
+        <events>
+            <controller_action_postdispatch_checkout_onepage_saveOrder>
+                <observers>
+                    <fraudguard>
+                        <type>singleton</type>
+                        <class>Sxml/observer</class>
+                        <method>redirectFlaggedOrders</method>
+                    </fraudguard>
+                </observers>
+            </controller_action_postdispatch_checkout_onepage_saveOrder>
+        </events>
         <blocks>
             <Sxml>
                 <class>SecurePay_Sxml_Block</class>
@@ -33,7 +44,7 @@
         <resources>
             <sxml_setup>
                 <setup>
-                    <module>SecurePay_sxml</module>
+                    <module>SecurePay_Sxml</module>
                 </setup>
                 <connection>
                     <use>local_setup</use>

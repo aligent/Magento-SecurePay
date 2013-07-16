@@ -63,8 +63,16 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 	}
 
     public function getFraudThreshold($iStoreId = 0) {
-        $iFraudThreshold  = (int) Mage::getStoreConfig('payment/Sxml/antifraud_threshold', $iStoreId);
+        $iFraudThreshold = (int) Mage::getStoreConfig('payment/Sxml/antifraud_threshold', $iStoreId);
         return $iFraudThreshold;
+    }
+
+    public function getFraudCmsPage($iStoreId = 0) {
+        $vCmsPageIdentifier = (int) Mage::getStoreConfig('payment/Sxml/antifraud_page', $iStoreId);
+
+        $oCmsPage = Mage::getModel('cms/page')->load('order_problem', 'identifier');
+
+        return Mage::helper('cms/page')->getPageUrl($oCmsPage->getId());
     }
 
 	public function getMode($forceNormal = 0, $iStoreId = 0)
@@ -209,6 +217,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                 $payment->setIsTransactionPending(true);
                 $payment->setIsFraudDetected(true);
                 $payment->setAdditionalInformation('fraud_markers', $vFraudguardResponse.' ('.$iFraudguardScore.')');
+                Mage::register('fraudguard_flagged_url', $this->getFraudCmsPage($iStoreId));
             }
 			
             if($this->getDebug())
@@ -330,6 +339,7 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
                         $payment->setIsTransactionPending(true);
                         $payment->setIsFraudDetected(true);
                         $payment->setAdditionalInformation('fraud_markers', $vFraudguardResponse.' ('.$iFraudguardScore.')');
+                        Mage::register('fraudguard_flagged_url', $this->getFraudCmsPage($iStoreId));
                         return $this;
                     }
                 }

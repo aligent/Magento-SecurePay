@@ -91,6 +91,7 @@ define('SECUREPAY_CURRENCY_DEFAULT',	'AUD');
 
 class securexml_transaction
 {
+
 	const VERSION = "SPHP23022010.";
 	
 	const TIMEOUT = "60";
@@ -112,6 +113,11 @@ class securexml_transaction
 	const GATEWAY_ERROR_RESPONSE_XML_MESSAGE_ERROR = "An unspecified error was found in the response message (missing field?)";
 	const GATEWAY_ERROR_SECUREPAY_STATUS = "The remote Gateway reported the following status error";
 	const GATEWAY_ERROR_TXN_DECLINED = "Transaction Declined";
+
+    // Turning this on will cause full XML requests and responses to be logged
+    // to a file in Magento's var/log folder.  This file _will_ contain unencrypted
+    // cardholder data.  NEVER turn this on in production.
+    const LOG_XML = false;
 
 	/* Common */
 	private $txnReference, $amount;
@@ -825,10 +831,15 @@ class securexml_transaction
 		
 		//Create request message. Destroys CC/CCV values if present
 		$requestMessage = $this->createXMLTransactionRequestString();
-		
+        if (self::LOG_XML) {
+            Mage::log(str_repeat('=', 80)."\nRequest:\n".$requestMessage, Zend_Log::INFO, 'securepay-xml.log');
+        }
 		//Send request
 		$response = $this->sendRequest($this->gatewayURL, $requestMessage);
-		
+        if (self::LOG_XML) {
+            Mage::log(str_repeat('-', 80)."\nResponse:\n".$response, Zend_Log::INFO, 'securepay-xml.log');
+        }
+
 		//Save the response
 		$this->responseArray["response"] = htmlentities($response);
 		

@@ -182,10 +182,16 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 		{
 			//Create the fraudguard transaction object
 			$sxml = new securexml_transaction ($this->getMode(0, $iStoreId),$this->getUsername($iStoreId),$this->getPassword($iStoreId));
+
 			//Populate fraud-check with user's details, if available
-			
-			$shipping_address = $payment->getOrder()->getShippingAddress();
-			$billing_address = $payment->getOrder()->getBillingAddress();
+            $billing_address = $payment->getOrder()->getBillingAddress();
+            $shipping_address = $payment->getOrder()->getShippingAddress();
+            // An order containing all virtual products (e.g. gift cards) does
+            // not have a shipping address.  Fake a shipping address by using
+            // billing address instead.
+            if ($shipping_address === false) {
+                $shipping_address = $billing_address;
+            }
 
             $vRemoteIp = Mage::helper('core/http')->getRemoteAddr();
             $sxml->initFraud($vRemoteIp, $billing_address->getFirstname(), $billing_address->getLastname(), $billing_address->getPostcode(), $billing_address->getCity(), $billing_address->getCountry(), $shipping_address->getCountry(), $billing_address->getEmail());
@@ -303,8 +309,15 @@ class SecurePay_Sxml_Model_Sxml extends Mage_Payment_Model_Method_Cc
 			{
 				// Issue a fraudguard transaction
 				$sxml = new securexml_transaction ($this->getMode(),$this->getUsername($iStoreId),$this->getPassword($iStoreId));
-				$shipping_address = $payment->getOrder()->getShippingAddress();
-				$billing_address = $payment->getOrder()->getBillingAddress();
+
+                $billing_address = $payment->getOrder()->getBillingAddress();
+                $shipping_address = $payment->getOrder()->getShippingAddress();
+                // An order containing all virtual products (e.g. gift cards) does
+                // not have a shipping address.  Fake a shipping address by using
+                // billing address instead.
+                if ($shipping_address === false) {
+                    $shipping_address = $billing_address;
+                }
 
                 $vRemoteIp = Mage::helper('core/http')->getRemoteAddr();
                 $sxml->initFraud($vRemoteIp, $billing_address->getFirstname(), $billing_address->getLastname(), $billing_address->getPostcode(), $billing_address->getCity(), $billing_address->getCountry(), $shipping_address->getCountry(), $billing_address->getEmail());

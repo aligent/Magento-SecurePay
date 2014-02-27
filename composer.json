@@ -1,0 +1,10 @@
+{
+  "name":"aligent/magento-securepay",
+  "type":"magento-module",
+  "homepage":"https://github.com/aligent/Magento-SecurePay",
+  "description":"Unofficial Magento SecurePay SecureXML module with patches.",
+  "require":{
+    "magento-hackathon/magento-composer-installer":"*"
+  }
+}
+

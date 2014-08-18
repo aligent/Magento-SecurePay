@@ -7,3 +7,4 @@ app/code/local/SecurePay/ app/code/local/SecurePay/
 app/design/frontend/base/default/template/sxml/ app/design/frontend/base/default/template/sxml/
 app/design/adminhtml/default/default/template/sxml/ app/design/adminhtml/default/default/template/sxml/
 app/etc/modules/SecurePay_Sxml.xml app/etc/modules/SecurePay_Sxml.xml
+skin/frontend/base/default/sxml/ skin/frontend/base/default/sxml/
